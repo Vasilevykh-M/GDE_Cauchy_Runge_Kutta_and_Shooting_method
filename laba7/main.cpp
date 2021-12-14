@@ -75,11 +75,24 @@ double f2(double t, double x)
 	return 0.1 * sin(M_PI * x) * variant + 0.1 * 0.1 * t * variant * pow(M_PI, 2) * sin(M_PI * x);
 }
 
-void RungeKutteMethod()
-
 double FindH(double h, double alpha, double x, double y, double& z) /*я вроде понимаю как это работает*/
 {
+	double k1, k2, k3, k4;
+	double l1, l2, l3, l4;
 
+	k1 = h * z;
+	l1 = h * f(x, y, z);
+	k2 = h * (z + l1 / 2.);
+	l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
+	k3 = h * (z + l2 / 2.);
+	l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
+	k4 = h * (z + l3);
+	l4 = h * f(x + h, y + k3, z + l3);
+
+	y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
+	z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
+
+	return y;
 }
 
 vector<double> ExplicitShem(int n, int cur_i)
@@ -186,8 +199,7 @@ void FDM()
 			cur_x = ExplicitShem(n, i);
 			double delta = 0;
 			double tau = tauExp(h) * i;
-	double k1, k2, k3, k4;
-	double l1, l2, l3, l4;
+
 
 			for (int j = 0; j <= n; ++j)
 			{
@@ -201,20 +213,6 @@ void FDM()
 				Del_T = delta;
 		}
 	}
-	k1 = h * z;
-	l1 = h * f(x, y, z);
-	k2 = h * (z + l1 / 2.);
-	l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
-	k3 = h * (z + l2 / 2.);
-	l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
-	k4 = h * (z + l3);
-	l4 = h * f(x + h, y + k3, z + l3);
-
-	y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
-	z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
-
-	return y;
-}
 
 	for (int n = 8; n <= 32; n *= 2)
 	{
@@ -238,6 +236,7 @@ void FDM()
 		}
 	}
 }
+
 
 double RungeKutteMethod(double alpha, double& max_error, bool printTable)
 {
