@@ -21,12 +21,12 @@ double A(double x)
 
 double B(double x)
 {
-	return (variant == 11) ? pow(x, 2) + 1 : pow(x, 2) + 2;
+	return (variant == 4) ? pow(x, 2) + 1 : pow(x, 2) + 2;
 }
 
 double C(double x)
 {
-	return (variant == 11) ? x + 2:  x + 1;
+	return (variant == 4) ? x + 2 : x + 1;
 }
 
 double Ynp(double x)
@@ -76,6 +76,8 @@ double f2(double t, double x)
 }
 
 void RungeKutteMethod()
+
+double FindH(double h, double alpha, double x, double y, double& z) /*я вроде понимаю как это работает*/
 {
 
 }
@@ -184,6 +186,8 @@ void FDM()
 			cur_x = ExplicitShem(n, i);
 			double delta = 0;
 			double tau = tauExp(h) * i;
+	double k1, k2, k3, k4;
+	double l1, l2, l3, l4;
 
 			for (int j = 0; j <= n; ++j)
 			{
@@ -197,6 +201,20 @@ void FDM()
 				Del_T = delta;
 		}
 	}
+	k1 = h * z;
+	l1 = h * f(x, y, z);
+	k2 = h * (z + l1 / 2.);
+	l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
+	k3 = h * (z + l2 / 2.);
+	l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
+	k4 = h * (z + l3);
+	l4 = h * f(x + h, y + k3, z + l3);
+
+	y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
+	z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
+
+	return y;
+}
 
 	for (int n = 8; n <= 32; n *= 2)
 	{
@@ -221,7 +239,96 @@ void FDM()
 	}
 }
 
+double RungeKutteMethod(double alpha, double& max_error, bool printTable)
+{
+	double x = 0;
+	double y = 1;
+	double z =alpha;
+
+	double y_prev, z_prev;
+	double k1, k2, k3, k4; // для уравнения y' = z
+	double l1, l2, l3, l4; // для уравнения z' = -Az + By - Сsin(y) + F
+
+	if (printTable)
+		cout << "     x     |   y(x)   |   Ypr(x)  |   z(x)   |    delta" << endl;
+
+	while (x < 1) { // я понятия не имею зачем нужен внешний цикл
+		double h = 0.2;
+		double y1, y2, y3;
+		double z1;
+		y_prev = y;
+		z_prev = z;
+
+		/*я понял как это работает*/
+		do
+		{
+			y_prev = y;
+			z_prev = z;
+			z1 = z;
+
+			h = h / 2;
+
+
+			y1 = FindH(h, alpha, x, y_prev, z1);
+			y2 = FindH(h / 2., alpha, x, y_prev, z_prev);
+			y3 = FindH(h / 2., alpha, x, y2, z_prev);
+		} while (abs(y1 - y3) > eps1);
+
+		double error = abs(Ynp(x) - y);
+		if (error > max_error)
+			max_error = error;
+
+		if (printTable)
+			cout << fixed << setprecision(5) << setw(10) << x << setw(10) << y << setw(10) << Ynp(x) << setw(10) << z
+			<< setw(14) << scientific << error << endl;
+
+
+		y_prev = y;
+
+		k1 = h * z;
+		l1 = h * f(x, y, z);
+		k2 = h * (z + l1 / 2.);
+		l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
+		k3 = h * (z + l2 / 2.);
+		l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
+		k4 = h * (z + l3);
+		l4 = h * f(x + h, y + k3, z + l3);
+
+		y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
+		z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
+		x += h;
+	}
+
+	return y_prev;
+}
+
+
+void shooting_metod()
+{
+	double y;
+	double alpha1 = 0, alpha2 = 3, alpha;
+	double B = 2;
+	int itr = 0;
+	double max_error;
+	cout << "  itr  |   z(0)     |    y(1)     |     delta" << endl;
+	/*тут впринципе все просто*/
+	do
+	{
+		itr++;
+		alpha = (alpha2 + alpha1) / 2.0;
+		y = RungeKutteMethod(alpha, max_error, false);
+		if (y > B)
+			alpha2 = alpha;
+		else
+			alpha1 = alpha;
+
+		cout << setw(4) << fixed << setprecision(7)<< itr << " " << setw(12)<< alpha << " " << setw(12)<< y << " " << setprecision(10)<< max_error<< endl;
+
+	} while (abs(y-B)>eps);
+	RungeKutteMethod(alpha, max_error, true);
+}
+
 void main()
 {
-
+	shooting_metod();
 }
