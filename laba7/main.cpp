@@ -234,8 +234,28 @@ void FDM()
 	}
 }
 
+double H(double h, double x, double y, double& z) /*я вроде понимаю как это работает*/
+{
+	double k1, k2, k3, k4;
+	double l1, l2, l3, l4;
 
-double RungeKutteMethod(double alpha, double& max_error, bool printTable)
+	k1 = h * z;
+	l1 = h * f(x, y, z);
+	k2 = h * (z + l1 / 2.);
+	l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
+	k3 = h * (z + l2 / 2.);
+	l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
+	k4 = h * (z + l3);
+	l4 = h * f(x + h, y + k3, z + l3);
+
+	y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
+	z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
+
+	return y;
+}
+
+
+double RungeKutteMethod(double alpha, double& max_error, bool printT)
 {
 	double x = 0;
 	double y = 1;
@@ -245,8 +265,8 @@ double RungeKutteMethod(double alpha, double& max_error, bool printTable)
 	double k1, k2, k3, k4; // для уравнения y' = z
 	double l1, l2, l3, l4; // для уравнения z' = -Az + By - Сsin(y) + F
 
-	if (printTable)
-		cout << "     x     |   y(x)   |   Ypr(x)  |   z(x)   |    delta" << endl;
+	if (printT)
+		cout << "     x     |   y(x)   |   Ypr(x)  |   z(x)   |    Delta" << endl;
 
 	while (x < 1) { // я понятия не имею зачем нужен внешний цикл
 		double h = 0.2;
@@ -264,34 +284,22 @@ double RungeKutteMethod(double alpha, double& max_error, bool printTable)
 
 			h = h / 2;
 
-
-			y1 = FindH(h, alpha, x, y_prev, z1);
-			y2 = FindH(h / 2., alpha, x, y_prev, z_prev);
-			y3 = FindH(h / 2., alpha, x, y2, z_prev);
+			y1 = H(h, x, y_prev, z1);
+			y2 = H(h / 2., x, y_prev, z_prev);
+			y3 = H(h / 2.,  x, y2, z_prev);
 		} while (abs(y1 - y3) > eps1);
 
 		double error = abs(Ynp(x) - y);
 		if (error > max_error)
 			max_error = error;
 
-		if (printTable)
+		if (printT)
 			cout << fixed << setprecision(5) << setw(10) << x << setw(10) << y << setw(10) << Ynp(x) << setw(10) << z
 			<< setw(14) << scientific << error << endl;
 
 
 		y_prev = y;
-
-		k1 = h * z;
-		l1 = h * f(x, y, z);
-		k2 = h * (z + l1 / 2.);
-		l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
-		k3 = h * (z + l2 / 2.);
-		l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
-		k4 = h * (z + l3);
-		l4 = h * f(x + h, y + k3, z + l3);
-
-		y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
-		z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
+		y = H(h, x, y, z);
 		x += h;
 	}
 
@@ -306,7 +314,7 @@ void shooting_metod()
 	double B = 2;
 	int itr = 0;
 	double max_error;
-	cout << "  itr  |   z(0)     |    y(1)     |     delta" << endl;
+	cout << "  itr  |   z(0)     |    y(1)     |     Delta" << endl;
 	/*тут впринципе все просто*/
 	do
 	{
