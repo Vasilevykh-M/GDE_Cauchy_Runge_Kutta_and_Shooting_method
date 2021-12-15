@@ -13,6 +13,8 @@ const double eps = 0.0001; // точность выполнения граничного условия
 const int variant = 4;
 const double ksi = 0.1;
 
+ofstream fout("out.txt");
+
 
 double A(double x)
 {
@@ -123,8 +125,13 @@ vector<double> solveSLAU(vector<vector<double>> a, vector<double> b)
 
 void FDM()
 {
+	fout<<fixed << "Ksi= " << ksi << endl;
+
+	fout << "Метод конечных разностей (неявная схема)\n";
 	for(int n=8;n<=32;n*=2)
 	{
+		fout << "N= " << n << endl;
+
 		double Del_T = 0;
 		double h = 1. / n;
 		double tau = tauExp(h);
@@ -136,9 +143,14 @@ void FDM()
 
 		next_x = cur_x;
 
+		fout << fixed << setw(8) << "t" << setw(22) << "delta";
+		for (int i = 0; i < cur_x.size(); ++i)
+			fout << fixed << setw(9) << setprecision(3) << cur_x[i];
+		fout << endl;
+
 		for(int i=1;i*tauExp(h)<=1;++i)
 		{
-			//cur_x = ExplicitShem(n, i);
+
 			double delta = 0;
 
 			for (int j = 1; j < cur_x.size()-1; ++j)
@@ -157,12 +169,13 @@ void FDM()
 				delta = max;
 			}
 
+			fout << fixed << setw(8) << setprecision(3) << tau * i << setw(22) << setprecision(19) << delta;
 			for(int i=0;i<cur_x.size();++i)
 			{
-				//cout << fixed << setprecision(5) << "|" << cur_x[i];
+				fout << fixed<<setw(9)<< setprecision(5) << cur_x[i];
 			}
 
-			//cout << endl;
+			fout << endl;
 
 			if (delta > Del_T)
 				Del_T = delta;
@@ -170,11 +183,15 @@ void FDM()
 			//cout << tau*i << endl;
 		}
 
-		cout << Del_T << endl;
+		fout << fixed << "Del_T= " << setprecision(19) << Del_T << endl;
 	}
+
+	fout << "Метод конечных разностей (явная схема)\n";
 
 	for (int n = 8; n <= 32; n *= 2)
 	{
+		fout << "N= " << n << endl;
+
 		double Del_T = 0;
 		double h = 1. / n;
 		double tau = tauImp(h);
@@ -201,6 +218,11 @@ void FDM()
 				a[i][i + 1] = -d;
 		}
 
+		fout << fixed << setw(8) << "t" << setw(22) << "delta";
+		for (int i = 0; i < cur_x.size(); ++i)
+			fout << fixed << setw(9) << setprecision(3) << cur_x[i];
+		fout << endl;
+
 		for (int i = 1; i * tauImp(h) <= 1; ++i)
 		{
 
@@ -226,11 +248,19 @@ void FDM()
 				delta = max;
 			}
 
+			fout << fixed << setw(8) << setprecision(3) << tau * i << setw(22) << setprecision(19) << delta;
+			for (int i = 0; i < cur_x.size(); ++i)
+			{
+				fout << fixed << setw(9) << setprecision(5) << cur_x[i];
+			}
+
+			fout << endl;
+
 			if (delta > Del_T)
 				Del_T = delta;
 		}
 
-		cout << Del_T << endl;
+		fout<<fixed<<"Del_T= "<<setprecision(19) << Del_T << endl;
 	}
 }
 
@@ -272,7 +302,7 @@ double RungeKutteMethod(double alpha, double& max_error, bool printT)
 	double y_prev, z_prev;
 
 	if (printT)
-		cout << "     x     |   y(x)   |   Ypr(x)  |   z(x)   |    Delta" << endl;
+		fout << "     x     |   y(x)   |   Ypr(x)  |   z(x)   |    Delta" << endl;
 
 	while (x < 1) { // тк рекурсивно вычиляем, а именно каждый следующий эллемент считается через предыдущий
 		double h = 0.2;
@@ -298,7 +328,7 @@ double RungeKutteMethod(double alpha, double& max_error, bool printT)
 			max_error = error;
 
 		if (printT)
-			cout << fixed << setprecision(5) << setw(10) << x << setw(10) << y << setw(10) << Ynp(x) << setw(10) << z
+			fout << fixed << setprecision(5) << setw(10) << x << setw(10) << y << setw(10) << Ynp(x) << setw(10) << z
 			<< setw(14) << scientific << error << endl;
 
 
@@ -323,7 +353,7 @@ void shooting_metod()
 	double B = 2;
 	int itr = 0;
 	double max_error;
-	cout << "  itr  |   z(0)     |    y(1)     |     Delta" << endl;
+	fout << "  itr  |   z(0)     |    y(1)     |     Delta" << endl;
 	/*тут впринципе все просто*/
 	do
 	{
@@ -335,7 +365,7 @@ void shooting_metod()
 		else
 			alpha1 = alpha;
 
-		cout << setw(4) << fixed << setprecision(7)<< itr << " " << setw(12)<< alpha << " " << setw(12)<< y << " " << setprecision(10)<< max_error<< endl;
+		fout << setw(4) << fixed << setprecision(7)<< itr << " " << setw(12)<< alpha << " " << setw(12)<< y << " " << setprecision(10)<< max_error<< endl;
 		max_error = -1; // тк передает значение по ссылке нужно после каждой итерации его "обнулять"
 	} while (abs(y-B)>eps);
 	RungeKutteMethod(alpha, max_error, true);
@@ -343,6 +373,8 @@ void shooting_metod()
 
 void main()
 {
+	fout << "Метод стрельб\n";
+	fout << "Время пострелять, между нами пальба!\n";
 	shooting_metod();
 	FDM();
 }
