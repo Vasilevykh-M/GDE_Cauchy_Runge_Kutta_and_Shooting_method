@@ -51,7 +51,7 @@ double F(double x)
 }
 
 
-double f(double x, double y, double z) /*не ебу что это*/
+double f(double x, double y, double z)
 {
 	return -A(x) * z + B(x) * y - C(x) * sin(y) + F(x);
 }
@@ -234,22 +234,22 @@ void FDM()
 	}
 }
 
-double H(double h, double x, double y, double& z) /*я вроде понимаю как это работает*/
+double YandZ(double h, double x, double y, double& z) /*вычисление y и z*/
 {
-	double k1, k2, k3, k4;
-	double l1, l2, l3, l4;
+	double k11, k12, k13, k14; // y`=z
+	double k21, k22, k23, k24; //z' = -Az + By - Сsin(y) + F
 
-	k1 = h * z;
-	l1 = h * f(x, y, z);
-	k2 = h * (z + l1 / 2.);
-	l2 = h * f(x + h / 2., y + k1 / 2., z + l1 / 2.);
-	k3 = h * (z + l2 / 2.);
-	l3 = h * f(x + h / 2., y + k2 / 2., z + l2 / 2.);
-	k4 = h * (z + l3);
-	l4 = h * f(x + h, y + k3, z + l3);
+	k11 = h * z;
+	k21 = h * f(x, y, z);
+	k12 = h * (z + k21 / 2.);
+	k22 = h * f(x + h / 2., y + k11 / 2., z + k21 / 2.);
+	k13 = h * (z + k22 / 2.);
+	k23 = h * f(x + h / 2., y + k12 / 2., z + k22 / 2.);
+	k14 = h * (z + k23);
+	k24 = h * f(x + h, y + k13, z + k23);
 
-	y = y + (k1 + 2 * k2 + 2 * k3 + k4) / 6.;
-	z = z + (l1 + 2 * l2 + 2 * l3 + l4) / 6.;
+	y = y + (k11 + 2 * k12 + 2 * k13 + k14) / 6.;
+	z = z + (k21 + 2 * k22 + 2 * k23 + k24) / 6.;
 
 	return y;
 }
@@ -257,36 +257,40 @@ double H(double h, double x, double y, double& z) /*я вроде понимаю как это рабо
 
 double RungeKutteMethod(double alpha, double& max_error, bool printT)
 {
+
+	/*y`(x) = z(x)
+	z`(x)=f(x,y(x),z(x))
+	y(0) = 1
+	y(1) = 2
+	z(0) = alpha*/
+
+
 	double x = 0;
 	double y = 1;
 	double z =alpha;
 
 	double y_prev, z_prev;
-	double k1, k2, k3, k4; // для уравнения y' = z
-	double l1, l2, l3, l4; // для уравнения z' = -Az + By - Сsin(y) + F
 
 	if (printT)
 		cout << "     x     |   y(x)   |   Ypr(x)  |   z(x)   |    Delta" << endl;
 
-	while (x < 1) { // я понятия не имею зачем нужен внешний цикл
+	while (x < 1) { // тк рекурсивно вычиляем, а именно каждый следующий эллемент считается через предыдущий
 		double h = 0.2;
 		double y1, y2, y3;
 		double z1;
 		y_prev = y;
 		z_prev = z;
 
-		/*я понял как это работает*/
+		/*поиск оптимального h*/
 		do
 		{
-			y_prev = y;
 			z_prev = z;
 			z1 = z;
-
 			h = h / 2;
 
-			y1 = H(h, x, y_prev, z1);
-			y2 = H(h / 2., x, y_prev, z_prev);
-			y3 = H(h / 2.,  x, y2, z_prev);
+			y1 = YandZ(h, x, y_prev, z1); //y[j+1]=y[j] + SUM(p[i]k[i](h,y[j]))
+			y2 = YandZ(h / 2., x, y_prev, z_prev); //y[j+1/2]=y[j] + SUM(p[i]k[i](h/2,y[j]))
+			y3 = YandZ(h / 2.,  x, y2, z_prev); //y*[j+1]=y[j+1/2] + SUM(p[i]k[i](h/2,y[j+1/2]))
 		} while (abs(y1 - y3) > eps1);
 
 		double error = abs(Ynp(x) - y);
@@ -298,8 +302,7 @@ double RungeKutteMethod(double alpha, double& max_error, bool printT)
 			<< setw(14) << scientific << error << endl;
 
 
-		y_prev = y;
-		y = H(h, x, y, z);
+		y = YandZ(h, x, y, z);
 		x += h;
 	}
 
@@ -309,6 +312,12 @@ double RungeKutteMethod(double alpha, double& max_error, bool printT)
 
 void shooting_metod()
 {
+
+	/*y`(x) = z(x)
+	z`(x)=f(x,y(x),z(x))
+	y(0) = 1
+	z(0) = alpha*/
+
 	double y;
 	double alpha1 = 0, alpha2 = 3, alpha;
 	double B = 2;
@@ -327,13 +336,13 @@ void shooting_metod()
 			alpha1 = alpha;
 
 		cout << setw(4) << fixed << setprecision(7)<< itr << " " << setw(12)<< alpha << " " << setw(12)<< y << " " << setprecision(10)<< max_error<< endl;
-
+		max_error = -1; // тк передает значение по ссылке нужно после каждой итерации его "обнулять"
 	} while (abs(y-B)>eps);
 	RungeKutteMethod(alpha, max_error, true);
 }
 
 void main()
 {
-	//shooting_metod();
+	shooting_metod();
 	FDM();
 }
